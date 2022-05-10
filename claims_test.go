@@ -33,7 +33,7 @@ func TestClaims_Marshall(t *testing.T) {
 		claims := &MyClaims{}
 		xt.OK(t, json.Unmarshal([]byte(doc), claims))
 		xt.Eq(t, "alice", claims.Issuer)
-		xt.Assert(t, expExpirationTime.Equal(claims.ExpirationTime.Time))
+		xt.Assert(t, expExpirationTime.Equal(claims.ExpiresAt.Time))
 		xt.Eq(t, true, claims.OK)
 	})
 
@@ -44,7 +44,7 @@ func TestClaims_Marshall(t *testing.T) {
 		xt.OK(t, json.Unmarshal([]byte(doc), claims))
 		xt.Assert(t, expIssuedAt.Equal(claims.IssuedAt.Time))
 		xt.Assert(t, expNotBefore.Equal(claims.NotBefore.Time))
-		xt.Assert(t, expExpirationTime.Equal(claims.ExpirationTime.Time))
+		xt.Assert(t, expExpirationTime.Equal(claims.ExpiresAt.Time))
 	})
 }
 
@@ -56,13 +56,13 @@ func TestClaims_MarshalJSON(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		expClaims := MyClaims{
 			RegisteredClaims: RegisteredClaims{
-				Issuer:         "alice",
-				Subject:        "1234",
-				Audience:       "world",
-				ExpirationTime: expExpirationTime,
-				NotBefore:      expNotBefore,
-				IssuedAt:       expIssuedAt,
-				JWTID:          "xaXaop",
+				Issuer:    "alice",
+				Subject:   "1234",
+				Audience:  StringOrSlice{"world"},
+				ExpiresAt: expExpirationTime,
+				NotBefore: expNotBefore,
+				IssuedAt:  expIssuedAt,
+				JWTID:     "xaXaop",
 			},
 			OK:     true,
 			Labels: []string{"tests", "private"},
