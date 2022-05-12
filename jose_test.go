@@ -15,20 +15,20 @@ func TestJOSEHeader_Encode(t *testing.T) {
 			{
 				exp: "eyJhbGciOiJub25lIn0",
 				jh: JOSEHeader{
-					Algorithm: AlgorithmNone,
+					Algorithm: AlgNone,
 				},
 			},
 			{
 				exp: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
 				jh: JOSEHeader{
-					Algorithm: AlgorithmHS256,
+					Algorithm: AlgHS256,
 					Type:      JOSETypeJWT,
 				},
 			},
 			{
 				exp: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9",
 				jh: JOSEHeader{
-					Algorithm: AlgorithmRS256,
+					Algorithm: AlgRS256,
 					Type:      JOSETypeJWT,
 				},
 			},

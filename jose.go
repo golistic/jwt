@@ -3,16 +3,17 @@ package jwt
 import (
 	"encoding/base64"
 	"encoding/json"
-	"strings"
 )
 
 type Algorithm string
 
 const (
-	AlgorithmNone  Algorithm = "none"
-	AlgorithmHS256 Algorithm = "HS256"
-	AlgorithmRS256 Algorithm = "RS256"
+	AlgNone  Algorithm = "none"
+	AlgHS256 Algorithm = "HS256"
+	AlgRS256 Algorithm = "RS256"
 )
+
+var supportedAlgorithms = []Algorithm{AlgNone, AlgHS256, AlgRS256}
 
 const (
 	JOSETypeJWT = "JWT"
@@ -32,5 +33,21 @@ func (jh JOSEHeader) Encode() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimRight(base64.StdEncoding.EncodeToString(data), "="), nil
+	return base64.RawStdEncoding.EncodeToString(data), nil
+}
+
+func CheckAlgorithm(alg Algorithm) error {
+	if !SliceHasString(supportedAlgorithms, alg) {
+		return &ErrAlgorithmNotSupported{Algorithm: string(alg)}
+	}
+	return nil
+}
+
+func SliceHasString[T ~string](haystack []T, needle T) bool {
+	for _, s := range haystack {
+		if s == needle {
+			return true
+		}
+	}
+	return false
 }
