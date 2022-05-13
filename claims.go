@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"encoding/base64"
 	"encoding/json"
 
 	"github.com/geertjanvdk/jwt/numericdate"
@@ -37,5 +36,5 @@ func EncodeClaims(claims Claimer) (string, error) {
 		return "", err
 	}
 
-	return base64.RawStdEncoding.EncodeToString(data), nil
+	return encodeSegment(data), nil
 }

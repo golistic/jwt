@@ -6,12 +6,12 @@ import (
 )
 
 type ErrEncoding struct {
-	Part string
-	Err  error
+	Segment string
+	Err     error
 }
 
 func (e *ErrEncoding) Error() string {
-	return fmt.Sprintf("failed encoding %s (%s)", e.Part, e.Err)
+	return fmt.Sprintf("failed encoding %s (%s)", e.Segment, e.Err)
 }
 
 type ErrAlgorithmNotSupported struct {
@@ -34,4 +34,5 @@ func (e *ErrDecoding) Error() string {
 var (
 	errNotEnoughParts = errors.New("not enough encoded parts")
 	errTooManyParts   = errors.New("too many encoded parts")
+	errAlgNoneWithKey = errors.New("providing key with algorithm 'none' is not possible")
 )

@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"encoding/base64"
 	"encoding/json"
 )
 
@@ -10,10 +9,14 @@ type Algorithm string
 const (
 	AlgNone  Algorithm = "none"
 	AlgHS256 Algorithm = "HS256"
+	AlgHS384 Algorithm = "HS384"
+	AlgHS512 Algorithm = "HS512"
 	AlgRS256 Algorithm = "RS256"
 )
 
-var supportedAlgorithms = []Algorithm{AlgNone, AlgHS256, AlgRS256}
+var hmacAlgorithms = []Algorithm{AlgHS256, AlgHS384, AlgHS512}
+
+var supportedAlgorithms = append([]Algorithm{AlgNone, AlgRS256}, hmacAlgorithms...)
 
 const (
 	JOSETypeJWT = "JWT"
@@ -33,7 +36,7 @@ func (jh JOSEHeader) Encode() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return base64.RawStdEncoding.EncodeToString(data), nil
+	return encodeSegment(data), nil
 }
 
 func CheckAlgorithm(alg Algorithm) error {
@@ -41,6 +44,10 @@ func CheckAlgorithm(alg Algorithm) error {
 		return &ErrAlgorithmNotSupported{Algorithm: string(alg)}
 	}
 	return nil
+}
+
+func isHMACAlgorithm(alg Algorithm) bool {
+	return SliceHasString(hmacAlgorithms, alg)
 }
 
 func SliceHasString[T ~string](haystack []T, needle T) bool {
