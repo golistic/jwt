@@ -36,5 +36,5 @@ func EncodeClaims(claims Claimer) (string, error) {
 		return "", err
 	}
 
-	return encodeSegment(data), nil
+	return encodePart(data), nil
 }

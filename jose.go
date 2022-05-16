@@ -36,7 +36,7 @@ func (jh JOSEHeader) Encode() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return encodeSegment(data), nil
+	return encodePart(data), nil
 }
 
 func CheckAlgorithm(alg Algorithm) error {

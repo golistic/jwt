@@ -7,32 +7,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"hash"
-	"strings"
+	"reflect"
 )
 
 type jsonWebToken struct {
-	header  JOSEHeader
+	header  *JOSEHeader
 	claims  Claimer
 	factory *Factory
-}
-
-func newFromEncoded(token string) (*jsonWebToken, error) {
-	parts := strings.Split(token, ".")
-
-	switch {
-	case len(parts) < 2:
-		return nil, &ErrDecoding{Part: "encoded token", Err: errNotEnoughParts}
-	case len(parts) > 3:
-		return nil, &ErrDecoding{Part: "encoded token", Err: errTooManyParts}
-	}
-
-	j := &jsonWebToken{}
-
-	if err := j.decodeUnsecured(parts[0], parts[1]); err != nil {
-		return nil, err
-	}
-
-	return j, nil
 }
 
 func (j *jsonWebToken) Encode() (string, error) {
@@ -40,21 +21,22 @@ func (j *jsonWebToken) Encode() (string, error) {
 }
 
 func (j *jsonWebToken) encode(alg Algorithm, key *JWK) (string, error) {
-	header, err := JOSEHeader{
+	j.header = &JOSEHeader{
 		Algorithm: alg,
-	}.Encode()
+	}
+	header, err := j.header.Encode()
 	if err != nil {
 		return "", &ErrEncoding{
-			Segment: "header",
-			Err:     err,
+			Part: "header",
+			Err:  err,
 		}
 	}
 
 	payload, err := j.claims.Encode()
 	if err != nil {
 		return "", &ErrEncoding{
-			Segment: "payload",
-			Err:     err,
+			Part: "payload",
+			Err:  err,
 		}
 	}
 
@@ -73,7 +55,7 @@ func (j *jsonWebToken) encode(alg Algorithm, key *JWK) (string, error) {
 	}
 }
 
-func (j *jsonWebToken) decodeUnsecured(encHeader, encPayload string) error {
+func (j *jsonWebToken) decodeParts(encHeader, encPayload string) error {
 	h, err := base64.RawURLEncoding.DecodeString(encHeader)
 	if err != nil {
 		return err
@@ -84,22 +66,29 @@ func (j *jsonWebToken) decodeUnsecured(encHeader, encPayload string) error {
 		return err
 	}
 
+	if j.header == nil {
+		j.header = &JOSEHeader{}
+	}
+
 	if err := json.Unmarshal(h, &j.header); err != nil {
 		return &ErrDecoding{Part: "header", Err: err}
 	}
 
+	if j.claims == nil {
+		j.claims = reflect.New(reflect.TypeOf(j.factory.claimType).Elem()).Interface().(Claimer)
+	}
+
 	if err := json.Unmarshal(p, &j.claims); err != nil {
-		return &ErrDecoding{Part: "header", Err: err}
+		return &ErrDecoding{Part: "claims", Err: err}
 	}
 
 	return nil
 }
 
-func (j *jsonWebToken) decodeSecured(token string) error {
-	return nil
-}
-
 func (j jsonWebToken) hmacSign(alg Algorithm, key *JWK, toSign string) (string, error) {
+	if key == nil {
+		return "", errAlgRequiresKey
+	}
 	var hf func() hash.Hash
 	switch j.factory.algorithm {
 	case AlgHS256:
@@ -114,9 +103,13 @@ func (j jsonWebToken) hmacSign(alg Algorithm, key *JWK, toSign string) (string, 
 
 	mac := hmac.New(hf, key.key)
 	mac.Write([]byte(toSign))
-	return encodeSegment(mac.Sum(nil)), nil
+	return encodePart(mac.Sum(nil)), nil
 }
 
-func encodeSegment(seg []byte) string {
-	return base64.RawURLEncoding.EncodeToString(seg)
+func encodePart(p []byte) string {
+	return base64.RawURLEncoding.EncodeToString(p)
+}
+
+func decodePart[T []byte | ~string](p T) ([]byte, error) {
+	return base64.RawURLEncoding.DecodeString(string(p))
 }

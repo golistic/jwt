@@ -1,7 +1,10 @@
 package jwt
 
 import (
+	"encoding/json"
 	"errors"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/geertjanvdk/xkit/xt"
@@ -11,7 +14,7 @@ func TestFactory_New(t *testing.T) {
 	t.Run("unsecured", func(t *testing.T) {
 		exp := "eyJhbGciOiJub25lIn0.eyJpc3MiOiJhbGljZSIsImxhYmVscyI6WyJsYWJlbDEiLCJsYWJlbDIiXX0"
 
-		factory, err := NewFactory(AlgNone, nil)
+		factory, err := NewFactory(AlgNone, nil, nil)
 		xt.OK(t, err)
 
 		j, err := factory.New(&MyClaims{
@@ -25,7 +28,7 @@ func TestFactory_New(t *testing.T) {
 	})
 
 	t.Run("unsupported algorithm", func(t *testing.T) {
-		_, err := NewFactory("foo", nil)
+		_, err := NewFactory("foo", nil, nil)
 		xt.KO(t, err)
 	})
 
@@ -59,7 +62,7 @@ func TestFactory_New(t *testing.T) {
 
 		for _, c := range cases {
 			t.Run("JWS using "+string(c.alg), func(t *testing.T) {
-				factory, err := NewFactory(c.alg, c.jwk)
+				factory, err := NewFactory(c.alg, c.jwk, &MyClaims{})
 				xt.OK(t, err)
 
 				j, err := factory.New(claims)
@@ -67,13 +70,57 @@ func TestFactory_New(t *testing.T) {
 
 				encoded, err := j.Encode()
 				xt.Eq(t, c.exp, encoded)
+
+				vj, err := factory.Decode(encoded)
+				xt.OK(t, err)
+				xt.Assert(t, reflect.DeepEqual(j.header, vj.header))
+				xt.Assert(t, reflect.DeepEqual(claims, vj.claims))
 			})
 		}
 	})
 
 	t.Run("algorithm cannot be AlgNone if key is supplied", func(t *testing.T) {
-		_, err := NewFactory(AlgNone, JWKeyHMAC("mysupersecret"))
+		_, err := NewFactory(AlgNone, JWKeyHMAC("mysupersecret"), nil)
 		xt.KO(t, err)
 		xt.Assert(t, errors.Is(err, errAlgNoneWithKey))
+	})
+
+	t.Run("forged tokens fail verification", func(t *testing.T) {
+		factory, err := NewFactory(AlgHS256, JWKeyHMAC("mysupersecret"), &MyClaims{})
+		xt.OK(t, err)
+
+		j, err := factory.New(&MyClaims{
+			RegisteredClaims: RegisteredClaims{Subject: "trudy"},
+			OK:               false,
+			Labels:           nil,
+		})
+		xt.OK(t, err)
+
+		original, err := j.Encode()
+		xt.OK(t, err)
+		origParts := strings.Split(original, ".")
+
+		data, err := decodePart(origParts[1])
+		xt.OK(t, err)
+		forgedClaims := &MyClaims{}
+		xt.OK(t, json.Unmarshal(data, forgedClaims))
+
+		forgedClaims.Labels = []string{"admin"}
+		data, err = json.Marshal(forgedClaims)
+		xt.OK(t, err)
+
+		_, err = factory.Decode(origParts[0] + "." + encodePart(data) + "." + origParts[2])
+		xt.KO(t, err)
+		xt.Eq(t, ErrVerifyFail, err)
+	})
+}
+
+func TestFactory_Verify(t *testing.T) {
+	t.Run("algorithm in header does not match factory", func(t *testing.T) {
+		factory, err := NewFactory(AlgHS256, nil, nil)
+		xt.OK(t, err)
+
+		_, err = factory.Verify("eyJhbGciOiJub25lIn0.eyJpc3MiOiJhbGljZSIsImxhYmVscyI6WyJsYWJlbDEiLCJsYWJlbDIiXX0")
+		xt.KO(t, err)
 	})
 }
