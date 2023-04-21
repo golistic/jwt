@@ -7,8 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/geertjanvdk/jwt/numericdate"
-	"github.com/geertjanvdk/xkit/xt"
+	"github.com/golistic/xt"
+
+	"github.com/golistic/jwt/numericdate"
 )
 
 type MyClaims struct {

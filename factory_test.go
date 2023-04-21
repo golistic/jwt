@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/geertjanvdk/xkit/xt"
+	"github.com/golistic/xt"
 )
 
 func TestFactory_New(t *testing.T) {

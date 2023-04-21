@@ -3,7 +3,7 @@ package jwt
 import (
 	"testing"
 
-	"github.com/geertjanvdk/xkit/xt"
+	"github.com/golistic/xt"
 )
 
 func TestJOSEHeader_Encode(t *testing.T) {

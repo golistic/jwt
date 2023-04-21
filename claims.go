@@ -3,7 +3,7 @@ package jwt
 import (
 	"encoding/json"
 
-	"github.com/geertjanvdk/jwt/numericdate"
+	"github.com/golistic/jwt/numericdate"
 )
 
 type Claimer interface {
